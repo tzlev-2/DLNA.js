@@ -461,6 +461,8 @@ describe('ActiveDeviceManager', () => {
 
 
     beforeEach(async () => { // beforeEach מיובא מ-bun:test
+      // @ts-expect-error - Assuming jest.useRealTimers() exists at runtime as per Bun docs
+      jest.useRealTimers();
       activeDeviceManager = new ActiveDeviceManager({
         ...defaultOptions,
         mSearchIntervalMs: 10000, // Longer to not interfere with cleanup test
