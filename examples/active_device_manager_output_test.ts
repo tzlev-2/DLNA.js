@@ -4,7 +4,8 @@ import {
   type ActiveDeviceManagerOptions,
   DiscoveryDetailLevel,
 } from '../packages/dlna-core/src/index'; // שימוש בנתיב יחסי
-import { createModuleLogger } from '../packages/dlna-core/src/logger'; // שימוש בנתיב יחסי
+import { createModuleLogger, setLogger } from '../packages/dlna-core/src/logger'; // שימוש בנתיב יחסי
+setLogger(console);
 
 const logger = createModuleLogger('ADMOutputTest');
 

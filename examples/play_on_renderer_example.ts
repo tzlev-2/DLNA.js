@@ -8,6 +8,7 @@ import { sendWakeOnLan, checkPingWithRetries } from 'wake-on-lan'; // ייבוא
 import {
     processUpnpDeviceFromUrl,
     createLogger, // שם הפונקציה עודכן
+    setLogger,
     DiscoveryDetailLevel,
     BrowseFlag,
     ContentDirectoryService,
@@ -20,6 +21,7 @@ import {
     type DidlLiteContainer,
     type Resource,
 } from 'dlna.js';
+setLogger(console);
 
 const logger = createLogger('PlayOnRendererExample'); // שימוש ב-createLogger
 

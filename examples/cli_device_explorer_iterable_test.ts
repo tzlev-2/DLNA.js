@@ -3,7 +3,9 @@ import {
   DiscoveryDetailLevel,
   type FullDeviceDescription,
   createLogger,
+  setLogger,
 } from 'dlna.js'; // ייבוא מהחבילה הראשית
+setLogger(console);
 
 const logger = createLogger('IterableTest');
 

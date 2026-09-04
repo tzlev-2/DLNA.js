@@ -1,4 +1,5 @@
-import { createModuleLogger } from '../packages/dlna-core/src/logger';
+import { createModuleLogger, setLogger } from '../packages/dlna-core/src/logger';
+setLogger(console);
 import type { Subprocess } from 'bun';
 import path from 'path';
 

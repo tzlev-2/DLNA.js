@@ -12,8 +12,10 @@ import {
   type ActionArgument, // שונה מ-Argument
   // UpnpSoapClient לא מיוצא, נשתמש ב-sendUpnpCommand
   createLogger,
+  setLogger,
   sendUpnpCommand, // הפונקציה המיוצאת לשליחת פקודות
 } from 'dlna.js'; // ייבוא יחסי לחבילת הליבה
+setLogger(console);
 
 const logger = createLogger('CLIDeviceExplorer');
 

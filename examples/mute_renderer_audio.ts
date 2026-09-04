@@ -5,8 +5,10 @@ import {
   type FullDeviceDescription,
   type ServiceDescription, // הוספת ייבוא חסר
   createLogger,
+  setLogger,
   sendUpnpCommand, // שינוי: UpnpSoapClient הוחלף ב-sendUpnpCommand
 } from 'dlna.js';
+setLogger(console);
 import readline from 'readline/promises';
 
 const logger = createLogger('MuteRendererAudioExample');
