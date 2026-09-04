@@ -634,6 +634,8 @@ export interface ServerApiDevice extends FullDeviceDescription {
     // כל המידע מ-FullDeviceDescription כבר כלול בזכות ההרחבה.
 }
 
+export type ApiDevice = ServerApiDevice;
+
 /**
  * @hebrew אפשרויות עבור ה-ActiveDeviceManager.
  */
