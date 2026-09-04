@@ -296,17 +296,17 @@ const xmlMetadata = createSingleItemDidlLiteXml(item, resource);
 console.log(xmlMetadata);
 ```
 
-#### `processUpnpDeviceFromUrl(locationUrl, options)`
+#### `processUpnpDeviceFromUrl(locationUrl, detailLevel, abortSignal?)`
 פונקציה ברמה נמוכה המאפשרת לעבד התקן ישירות מכתובת ה-URL של קובץ ה-XML שלו.
 
 **דוגמה:**
 ```typescript
-import { processUpnpDeviceFromUrl } from 'dlna.js';
+import { processUpnpDeviceFromUrl, DiscoveryDetailLevel } from 'dlna.js';
 
 async function getDeviceDetails(url: string) {
   console.log(`מאחזר פרטים מלאים עבור התקן בכתובת: ${url}`);
   try {
-    const device = await processUpnpDeviceFromUrl(url, { detailLevel: 'full' });
+    const device = await processUpnpDeviceFromUrl(url, DiscoveryDetailLevel.Full);
     if (device) {
       console.log(`העיבוד הצליח: ${device.friendlyName}`);
     } else {

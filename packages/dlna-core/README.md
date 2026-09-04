@@ -7,6 +7,8 @@ A simple and easy-to-use JavaScript/TypeScript library for interacting with DLNA
 
 This package provides tools for discovering DLNA devices, browsing their content, and basic control over media playback. It is intended for developers who want to integrate DLNA capabilities into their Node.js applications.
 
+> **Early release:** This library is in early development. The API may change between versions.
+
 ## Features
 
 *   Discover DLNA/UPnP devices on the network (Media Servers, Media Renderers, etc.).
@@ -187,7 +189,7 @@ When you discover a device with `detailLevel: 'full'`, the library automatically
 
 **Accessing Services and Actions**
 
-1.  **Get the service:** Use the `device.getService(urn)` method, where `urn` is the service type (e.g., `'urn:schemas-upnp-org:service:AVTransport:1'`).
+1.  **Get the service:** Use `device.serviceList.get(serviceName)` where `serviceName` is the short service key (e.g., `'AVTransport'`, `'ContentDirectory'`).
 2.  **Get the action:** Use the `service.actionList.get(actionName)` method to get a specific action.
 3.  **Invoke the action:** Call the `action.invoke(args)` method with the required arguments.
 
@@ -206,7 +208,7 @@ deviceManager.on('devicefound', async (udn: string, device: ApiDevice) => {
   console.log(`Found a Media Renderer: ${device.friendlyName}`);
 
   // Get the AVTransport service
-  const avTransport = device.getService('AVTransport');
+  const avTransport = device.serviceList.get('AVTransport');
   if (!avTransport || !avTransport.actionList) {
     console.error('This renderer does not have a usable AVTransport service.');
     return;
@@ -295,7 +297,7 @@ import type { DeviceDescription } from 'dlna.js';
 
 // Assuming 'device' is a discovered Media Server device object
 async function browseAndSearchContent(device: DeviceDescription) {
-  const cdsServiceInfo = device.getService('ContentDirectory');
+  const cdsServiceInfo = device.serviceList.get('ContentDirectory');
   if (!cdsServiceInfo) {
       console.error('ContentDirectory service not found on this device.');
       return;
@@ -354,7 +356,7 @@ import type { DeviceDescription } from 'dlna.js';
 // Assuming 'rendererDevice' is a discovered Media Renderer
 // and 'mediaUrl' is the URL of the media to play
 async function playMedia(rendererDevice: DeviceDescription, mediaUrl: string) {
-  const avtService = rendererDevice.getService('urn:schemas-upnp-org:service:AVTransport:1');
+  const avtService = rendererDevice.serviceList.get('AVTransport');
   if (!avtService) {
     console.error('AVTransport service not found.');
     return;
@@ -415,11 +417,11 @@ const didlXml = createSingleItemDidlLiteXml(item, resource);
 // Now you can pass didlXml to the SetAVTransportURI command.
 ```
 
-### `processUpnpDevice(basicDevice, options)` and `processUpnpDeviceFromUrl(locationUrl, options)`
+### `processUpnpDevice(basicDevice, detailLevel, abortSignal?)` and `processUpnpDeviceFromUrl(locationUrl, detailLevel, abortSignal?)`
 
 These are lower-level functions used internally by the discovery process to fetch and parse the full details of a device. You would typically not need to call them directly.
 
-*   **`processUpnpDevice`**: Takes a `BasicSsdpDevice` object (from an initial discovery) and enriches it with full details according to the specified `detailLevel`.
+*   **`processUpnpDevice`**: Takes a `BasicSsdpDevice` object (from an initial discovery) and enriches it with full details according to the specified `detailLevel` (`DiscoveryDetailLevel` enum).
 *   **`processUpnpDeviceFromUrl`**: Does the same, but starts from just the device's XML location URL.
 
 **When to use them?**
@@ -427,16 +429,16 @@ If you have a device's basic information or URL from another source and want to 
 
 **Example:**
 ```typescript
-import { processUpnpDeviceFromUrl } from 'dlna.js';
+import { processUpnpDeviceFromUrl, DiscoveryDetailLevel } from 'dlna.js';
 
 async function getDeviceDetails(url: string) {
   console.log(`Fetching full details for device at: ${url}`);
   try {
-    const device = await processUpnpDeviceFromUrl(url, { detailLevel: 'full' });
+    const device = await processUpnpDeviceFromUrl(url, DiscoveryDetailLevel.Full);
     if (device) {
       console.log(`Successfully processed: ${device.friendlyName}`);
       // You can now access all device properties, services, and actions
-      const avTransport = device.getService('AVTransport');
+      const avTransport = device.serviceList?.get('AVTransport');
       if (avTransport) {
         console.log('AVTransport service is available.');
       }

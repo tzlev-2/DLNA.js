@@ -13,7 +13,8 @@
   "files": [
     "dist",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "README.he.md"
   ],
   "keywords": [
     "dlna",
