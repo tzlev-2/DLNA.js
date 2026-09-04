@@ -5,6 +5,16 @@
   "description": "A library for discovering and interacting with DLNA/UPnP devices on a local network.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "bun test",
@@ -27,12 +37,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MusiCode1/DLNA.js"
+    "url": "https://github.com/tzlev-2/DLNA.js"
   },
   "bugs": {
-    "url": "https://github.com/MusiCode1/DLNA.js/issues"
+    "url": "https://github.com/tzlev-2/DLNA.js/issues"
   },
-  "homepage": "https://github.com/MusiCode1/DLNA.js#readme",
+  "homepage": "https://github.com/tzlev-2/DLNA.js#readme",
   "dependencies": {
     "axios": "^1.9.0",
     "http-parser-js": "^0.5.10",
