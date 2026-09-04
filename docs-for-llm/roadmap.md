@@ -8,7 +8,7 @@
 
 | Slice | סטטוס |
 |-------|--------|
-| A1 logger noop בליבה | 🟡 בריצה — `dlna-js-logger-noop` |
+| A1 logger noop בליבה | ✅ מוזג ל-`integration/run-dlna-js-publish` @ `9eb6708` |
 | A2 Winston → server | ⬜ אחרי A1 |
 | B build/test | ⬜ |
 | C README/API | ⬜ |
