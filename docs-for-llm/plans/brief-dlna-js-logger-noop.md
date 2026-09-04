@@ -1,6 +1,6 @@
 # Slice — `dlna-js-logger-noop` — בריף (A1 בלבד)
 
-> **תאריך**: 2026-09-04 · **סטטוס**: מאושר — plan-gate עבר
+> **תאריך**: 2026-09-04 · **סטטוס**: הושלם (אליעזר C0+C1)
 > **אימות אביגיל**: **READY** (0 ממצאים) · דוח: `$BDS_REPORTS/DLNA.js/dlna-js-logger-noop-avigail.md`
 > **Dispatch**: סבב אביגיל אחד. אין לולאת READY.
 > **Complexity**: 2/10 → `calev` light/phase · **`depends_on`**: `[]`
@@ -290,4 +290,4 @@ Protocol contract ציבורי חדש (`DlnaLogger` / `setLogger*`) +2 · refact
 
 ## סטיות מהתכנון (אליעזר)
 
-- …
+- `bun run build` / חלק מ-`bun test` ב-`packages/dlna-core` נכשלים על `node-cache` חסר ב-`upnpDeviceProcessor.ts` — **אותו כשל על `integration/run-dlna-js-publish` לפני הסלייס** (slice B, מחוץ ל-A1). late-binding test + שאר שערי C1 ירוקים.

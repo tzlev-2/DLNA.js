@@ -6,8 +6,11 @@ export {
 // From logger.ts
 export {
     default as createLogger,
-    createModuleLogger
+    createModuleLogger,
+    setLogger,
+    setLoggerFactory,
 } from './logger';
+export type { DlnaLogger, LoggerFactory } from './logger';
 
 // From types.ts
 export * from './types';

@@ -161,7 +161,7 @@ export class ActiveDeviceManager extends EventEmitter {
     };
 
     if (basicDevice.httpMethod === 'M-SEARCH') {
-      logger.trace(`_parseAndMapSsdpMessage: Received M-SEARCH request from ${rinfo.address}:${rinfo.port}.`, { usn: basicDevice.usn, UDN: basicDevice.UDN });
+      logger.debug(`_parseAndMapSsdpMessage: Received M-SEARCH request from ${rinfo.address}:${rinfo.port}.`, { usn: basicDevice.usn, UDN: basicDevice.UDN });
     }
 
     if (basicDevice.httpMethod !== 'M-SEARCH' && messageType === 'RESPONSE' && !location) {
@@ -190,7 +190,7 @@ export class ActiveDeviceManager extends EventEmitter {
       } else if (basicDevice.httpMethod === 'NOTIFY') {
         messageOriginType = 'Multicast (NOTIFY)';
       }
-      logger.trace(`Received SSDP message from ${rinfo.address}:${rinfo.port} via ${socketType}. Type: ${messageOriginType}`, {
+      logger.debug(`Received SSDP message from ${rinfo.address}:${rinfo.port} via ${socketType}. Type: ${messageOriginType}`, {
         usn: basicDevice.usn,
         st: basicDevice.st,
         nts: basicDevice.nts,
@@ -433,7 +433,7 @@ export class ActiveDeviceManager extends EventEmitter {
    */
   private _cleanupDevices(): void {
     const now = Date.now();
-    logger.trace(`_cleanupDevices: Starting cleanup. Current active devices: ${this.activeDevices.size}`);
+    logger.debug(`_cleanupDevices: Starting cleanup. Current active devices: ${this.activeDevices.size}`);
 
     for (const [udn, device] of this.activeDevices.entries()) {
       if (device.expiresAt < now) {
@@ -443,7 +443,7 @@ export class ActiveDeviceManager extends EventEmitter {
         logger.info(`_cleanupDevices: Removed expired device: UDN=${udn} (FriendlyName: ${device.friendlyName}, USN: ${device.usn}, ExpiresAt: ${new Date(device.expiresAt).toISOString()})`, { udn, friendlyName: device.friendlyName, usn: device.usn });
       }
     }
-    logger.trace(`_cleanupDevices: Finished cleanup. Active devices after cleanup: ${this.activeDevices.size}`);
+    logger.debug(`_cleanupDevices: Finished cleanup. Active devices after cleanup: ${this.activeDevices.size}`);
   }
 
   /**
@@ -517,7 +517,7 @@ export class ActiveDeviceManager extends EventEmitter {
 
       // שליחת M-SEARCH ראשוני
       if (this.socketManager) {
-        logger.trace(`Sending initial M-SEARCH for target: ${this.options.searchTarget}`);
+        logger.debug(`Sending initial M-SEARCH for target: ${this.options.searchTarget}`);
         // נשלח גם ל-IPv4 וגם ל-IPv6 אם רלוונטי
         this.socketManager.sendMSearch(this.options.searchTarget, 4).catch((err: Error) => {
           logger.error('Error sending initial M-SEARCH IPv4:', err);
