@@ -339,7 +339,6 @@ async function fetchAndParseDeviceDescriptionXml(
     } else if (error.code === 'ECONNABORTED' || (error.response && error.response.status === 408) || error.message?.includes('timeout')) {
       logger.warn(`fetchAndParseDeviceDescriptionXml: Timeout fetching device description from ${locationUrl}.`, { message: error.message });
     } else {
-      debugger;
       logger.error(`fetchAndParseDeviceDescriptionXml: Error fetching or parsing device description from ${locationUrl}:`, { message: error.message, stack: error.stack, url: locationUrl });
     }
     return null;
