@@ -3,8 +3,6 @@ import axios from 'axios';
 import * as xml2js from 'xml2js';
 import * as arp from "node-arp";
 import { promisify } from "node:util";
-import NodeCache from "node-cache";
-
 import type {
   BasicSsdpDevice,
   DeviceDescription,
@@ -31,10 +29,22 @@ const getMacPromise = promisify(arp.getMAC);
 const logger = createModuleLogger('upnpDeviceProcessor');
 const DEFAULT_TIMEOUT_MS = 5000; // הועבר מ-upnpDeviceExplorer.ts
 
-const macAddressCache = new NodeCache({
-  stdTTL: 60 * 60 * 2,
-  checkperiod: 120
-});
+const MAC_TTL_MS = 60 * 60 * 2 * 1000;
+const macAddressCacheStore = new Map<string, { value: string; expiresAt: number }>();
+const macAddressCache = {
+  get(key: string): string | undefined {
+    const entry = macAddressCacheStore.get(key);
+    if (!entry) return undefined;
+    if (Date.now() >= entry.expiresAt) {
+      macAddressCacheStore.delete(key);
+      return undefined;
+    }
+    return entry.value;
+  },
+  set(key: string, value: string): void {
+    macAddressCacheStore.set(key, { value, expiresAt: Date.now() + MAC_TTL_MS });
+  },
+};
 
 // ==========================================================================================
 // Helper Functions for Key Normalization
