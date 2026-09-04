@@ -1,469 +1,362 @@
 [English](./README.md) | [עברית](./README.he.md)
 
 ---
+
 # DLNA.js
 
-A simple and easy-to-use JavaScript/TypeScript library for interacting with DLNA (Digital Living Network Alliance) and UPnP (Universal Plug and Play) devices on a local network.
+JavaScript/TypeScript library for discovering and controlling DLNA / UPnP devices on a local network (Media Servers, Media Renderers, and related services).
 
-This package provides tools for discovering DLNA devices, browsing their content, and basic control over media playback. It is intended for developers who want to integrate DLNA capabilities into their Node.js applications.
+> **Early release:** The API may change between versions. Installed TypeScript declarations (`dist/*.d.ts`) are the authoritative signatures.
 
-> **Early release:** This library is in early development. The API may change between versions.
-
-## Features
-
-*   Discover DLNA/UPnP devices on the network (Media Servers, Media Renderers, etc.).
-*   Browse the folders and files of Media Servers.
-*   Get detailed metadata for media items.
-*   Send basic commands to Media Renderers (e.g., Play, Pause, Stop, SetVolume).
-*   Invoke DLNA methods.
-*   Low-level access for sending any SOAP command to any UPnP service.
-
-## Installation
-
-The project has been tested with `Bun.js` only. Everything should work correctly with `Node.js` but it has not been thoroughly tested.
+**Runtime:** Node.js `>=18` (also works with Bun). Discovery and control require access to the same LAN as the devices (UDP SSDP multicast + HTTP to device description/control URLs).
 
 ```bash
 npm install dlna.js
-# or
-yarn add dlna.js
-# or
-bun add dlna.js
+# or: yarn add dlna.js / bun add dlna.js
 ```
 
-## API Documentation
-
-### 1. Device Discovery
-
-Device discovery can be done in two ways, depending on your needs. The core mechanism is the `ActiveDeviceManager`, which provides continuous, event-based discovery. For simpler, one-off searches, the `discoverSsdpDevicesIterable` function provides a convenient wrapper.
-
-#### `ActiveDeviceManager` (Event-Based, Continuous Discovery)
-
-This class is the primary tool for device discovery. It runs in the background, actively searches for devices, and manages a list of available devices.
-
-**When to use it?**
-Use `ActiveDeviceManager` for long-running applications that need to continuously monitor the network, such as servers or persistent desktop applications.
-
-**`new ActiveDeviceManager(options)`**
-
-The constructor accepts an `options` object to customize its behavior:
-
-*   `searchTarget` (string, optional): The type of devices to search for. Defaults to `"ssdp:all"`.
-*   `detailLevel` (string, optional): The level of detail to fetch (`'basic'`, `'description'`, `'services'`, `'full'`). Defaults to `'basic'`.
-*   `mSearchIntervalMs` (number, optional): How often (in ms) to send a new M-SEARCH discovery request. Defaults to `10000`.
-*   `deviceCleanupIntervalMs` (number, optional): How often (in ms) to check for and remove unresponsive devices. Defaults to `30000`.
-*   `includeIPv6` (boolean, optional): Whether to also use IPv6 for discovery. Defaults to `false`.
-*   `onRawSsdpMessage` (function, optional): A callback function that receives the raw SSDP message buffer and remote info before processing.
-*   `networkInterfaces` (string[] | object, optional): Allows restricting discovery to specific network interfaces.
-
-**Events:**
-
-*   `'devicefound' (udn: string, device: ApiDevice)`: Emitted when a new device is discovered and fully processed.
-*   `'deviceupdated' (udn: string, device: ApiDevice)`: Emitted when an existing device sends a "heartbeat" or its details are updated.
-*   `'devicelost' (udn: string, device: ApiDevice)`: Emitted when a device leaves the network or times out.
-*   `'error' (error: Error)`: Emitted on a critical discovery error.
-
-**Main Methods:**
-
-*   `start()`: Starts the discovery process.
-*   `stop()`: Stops the discovery process.
-*   `getActiveDevices()`: Returns a `Map` of all currently active devices.
-
-**Example:**
-
-```typescript
-import { ActiveDeviceManager } from 'dlna.js';
-import type { ApiDevice } from 'dlna.js';
-
-// 1. Create an instance of the manager with detailed options.
-const deviceManager = new ActiveDeviceManager({
-  // searchTarget: The type of devices to search for.
-  // Defaults to 'ssdp:all'.
-  searchTarget: 'urn:schemas-upnp-org:device:MediaServer:1',
-
-  // detailLevel: The level of detail to fetch for each device.
-  // Can be 'basic', 'description', 'services', or 'full'.
-  // Defaults to 'basic'.
-  detailLevel: 'full',
-
-  // mSearchIntervalMs: How often (in ms) to send a new discovery request.
-  // Defaults to 10000 (10 seconds).
-  mSearchIntervalMs: 15000,
-
-  // deviceCleanupIntervalMs: How often (in ms) to check for unresponsive devices.
-  // Defaults to 30000 (30 seconds).
-  deviceCleanupIntervalMs: 35000,
-
-  // includeIPv6: Whether to also use IPv6 for discovery.
-  // Defaults to false.
-  includeIPv6: false,
-});
-
-// 2. Listen for events.
-// 'devicefound' is emitted when a new device is discovered and processed.
-deviceManager.on('devicefound', (udn: string, device: ApiDevice) => {
-  console.log(`[+] Device Found: ${device.friendlyName}`);
-  // You can now interact with the 'device' object, e.g., browse its content.
-});
-
-// 'devicelost' is emitted when a device leaves the network or times out.
-deviceManager.on('devicelost', (udn: string, device: ApiDevice) => {
-  console.log(`[-] Device Lost: ${device.friendlyName}`);
-});
-
-// 'error' is emitted if a critical error occurs.
-deviceManager.on('error', (err: Error) => {
-  console.error('!! A critical error occurred in the device manager:', err);
-});
-
-// 3. Start the discovery process.
-async function runApp() {
-  // The start() method begins the discovery process.
-  console.log('Starting continuous device discovery...');
-  await deviceManager.start();
-  console.log('Manager is running. Listening for devices...');
-
-  // Example of using getActiveDevices() to periodically list devices.
-  setInterval(() => {
-    const activeDevices = deviceManager.getActiveDevices();
-    console.log(`\n--- Currently Active Devices: ${activeDevices.size} ---`);
-    activeDevices.forEach(device => {
-      console.log(`  - ${device.friendlyName} (UDN: ${device.UDN})`);
-    });
-    console.log('--------------------------------------\n');
-  }, 30000); // List devices every 30 seconds
-
-  // The stop() method gracefully stops the discovery.
-  // We'll call it when the user presses Ctrl+C.
-  process.on('SIGINT', async () => {
-    console.log('\nGracefully stopping device manager...');
-    await deviceManager.stop();
-    console.log('Manager stopped.');
-    process.exit(0);
-  });
-}
-
-runApp();
+```js
+const { ActiveDeviceManager, DiscoveryDetailLevel } = require('dlna.js');
 ```
 
-#### `discoverSsdpDevicesIterable` (Async Iterable, One-off Search)
+---
 
-This function is a convenient wrapper around `ActiveDeviceManager` for performing a single, time-limited search. It returns an `AsyncIterable`, which allows you to easily process devices in a `for await...of` loop.
+## Important notes
 
-**When to use it?**
-Use this for simple cases where you just need to get a list of devices currently on the network without continuous monitoring.
+1. **Logging is silent by default.** Call `setLogger(console)` (or a custom `DlnaLogger`) if you want library logs. Leaving the default noop is recommended for CLIs that use interactive prompts.
+2. **Services live on `device.serviceList`**, a `Map` keyed by short names such as `'AVTransport'`, `'ContentDirectory'`, `'RenderingControl'`, `'ConnectionManager'`. There is no `device.getService()`.
+3. **`detailLevel: 'full'`** (or `DiscoveryDetailLevel.Full`) is required for `action.invoke(...)` helpers. Lower levels may still list services without invokable actions.
+4. **Many renderers only accept `http-get` URIs** (not `https:`) for `SetAVTransportURI`. Check the device `ConnectionManager` / `GetProtocolInfo` Sink list. Prefer `http://...` media URLs (or a LAN HTTP facade) when casting.
+5. **Official URL playback** on a MediaRenderer is UPnP AV: `SetAVTransportURI` then `Play`. The renderer fetches the URL itself.
 
-**Parameters (`options`):**
+---
 
-*   `timeoutMs` (number, optional): How long the discovery will run. Defaults to `5000`.
-*   `searchTarget` (string, optional): The type of devices to search for. Defaults to `"ssdp:all"`.
-*   `detailLevel` (string, optional): The level of detail to fetch for each device (`'basic'`, `'description'`, `'services'`, `'full'`). Defaults to `'full'`.
-*   `abortSignal` (AbortSignal, optional): Allows canceling the discovery process.
+## Quick start
 
-**Example:**
+```js
+const {
+  ActiveDeviceManager,
+  DiscoveryDetailLevel,
+  createSingleItemDidlLiteXml,
+  setLogger,
+} = require('dlna.js');
 
-```typescript
-import { discoverSsdpDevicesIterable } from 'dlna.js';
+// Optional: setLogger(console);
 
-async function findMediaServers() {
-  console.log('Searching for Media Servers...');
-  try {
-    const options = {
-      searchTarget: 'urn:schemas-upnp-org:device:MediaServer:1',
-      timeoutMs: 10000,
-    };
-    for await (const device of discoverSsdpDevicesIterable(options)) {
-      console.log(`Found: ${device.friendlyName} at ${device.baseURL}`);
-    }
-    console.log('Search finished.');
-  } catch (error) {
-    console.error('An error occurred during discovery:', error);
-  }
-}
-
-findMediaServers();
-```
-
-### 2. Interacting with Device Services
-
-When you discover a device with `detailLevel: 'full'`, the library automatically parses the device's services and attaches a convenient `invoke` method to each available action. This allows for direct interaction with the device's capabilities.
-
-**Accessing Services and Actions**
-
-1.  **Get the service:** Use `device.serviceList.get(serviceName)` where `serviceName` is the short service key (e.g., `'AVTransport'`, `'ContentDirectory'`).
-2.  **Get the action:** Use the `service.actionList.get(actionName)` method to get a specific action.
-3.  **Invoke the action:** Call the `action.invoke(args)` method with the required arguments.
-
-**Example: Controlling a Media Renderer (Play, Pause, Stop)**
-
-```typescript
-import { ActiveDeviceManager, createSingleItemDidlLiteXml } from 'dlna.js';
-import type { ApiDevice } from 'dlna.js';
-
-const deviceManager = new ActiveDeviceManager({
+const mgr = new ActiveDeviceManager({
   searchTarget: 'urn:schemas-upnp-org:device:MediaRenderer:1',
-  detailLevel: 'full' // 'full' is required to get invokable actions
+  detailLevel: DiscoveryDetailLevel.Full,
+  mSearchIntervalMs: 5000,
 });
 
-deviceManager.on('devicefound', async (udn: string, device: ApiDevice) => {
-  console.log(`Found a Media Renderer: ${device.friendlyName}`);
+mgr.on('devicefound', async (_udn, device) => {
+  console.log('Found', device.friendlyName, device.remoteAddress);
 
-  // Get the AVTransport service
-  const avTransport = device.serviceList.get('AVTransport');
-  if (!avTransport || !avTransport.actionList) {
-    console.error('This renderer does not have a usable AVTransport service.');
-    return;
-  }
+  const avt = device.serviceList?.get('AVTransport');
+  const setUri = avt?.actionList?.get('SetAVTransportURI');
+  const play = avt?.actionList?.get('Play');
+  if (!setUri?.invoke || !play?.invoke) return;
 
-  try {
-    // Get the actions from the service's actionList
-    const setUriAction = avTransport.actionList.get('SetAVTransportURI');
-    const playAction = avTransport.actionList.get('Play');
-    const pauseAction = avTransport.actionList.get('Pause');
-    const stopAction = avTransport.actionList.get('Stop');
-
-    if (!setUriAction || !playAction || !pauseAction || !stopAction) {
-      console.error('One or more required actions (SetAVTransportURI, Play, Pause, Stop) are missing.');
-      return;
-    }
-
-    const mediaUrl = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-    const instanceId = { InstanceID: 0 };
-
-    // 1. Set the media URL to play, including DIDL-Lite metadata
-    console.log('Setting media URL with metadata...');
-
-    // Create metadata for the item we want to play
-    const item = {
-      id: 'video-item-1',
-      parentId: '0', // Or the actual parent ID if known
-      title: 'Big Buck Bunny',
-      class: 'object.item.videoItem', // Standard UPnP class for a video
+  const mediaUrl = 'http://192.168.1.10/media/sample.mp3';
+  const didl = createSingleItemDidlLiteXml(
+    {
+      id: '1',
+      parentId: '0',
+      title: 'sample',
+      class: 'object.item.audioItem.musicTrack',
       restricted: false,
-    };
-    const resource = {
-      uri: mediaUrl,
-      protocolInfo: 'http-get:*:video/mp4:*', // Protocol info for the media
-    };
-    const didlXml = createSingleItemDidlLiteXml(item, resource);
+    },
+    { uri: mediaUrl, protocolInfo: 'http-get:*:audio/mpeg:*' }
+  );
 
-    await setUriAction.invoke({
-      ...instanceId,
-      CurrentURI: mediaUrl,
-      CurrentURIMetaData: didlXml
-    });
-
-    // 2. Send the Play command
-    console.log('Sending Play command...');
-    await playAction.invoke({ ...instanceId, Speed: '1' });
-
-    // 3. Wait for a bit, then pause
-    setTimeout(async () => {
-      console.log('Sending Pause command...');
-      await pauseAction.invoke(instanceId);
-    }, 10000); // Pause after 10 seconds
-
-  } catch (error) {
-    console.error(`Error controlling device ${device.friendlyName}:`, error);
-  }
+  await setUri.invoke({
+    InstanceID: 0,
+    CurrentURI: mediaUrl,
+    CurrentURIMetaData: didl,
+  });
+  await play.invoke({ InstanceID: 0, Speed: '1' });
 });
 
-deviceManager.start();
+mgr.start();
 ```
 
-### 3. Browsing Content
+Interactive explorer (in the monorepo): `bun examples/cli_device_explorer.ts`.
 
-Once you have discovered a Media Server (either via `discoverSsdpDevicesIterable` or `ActiveDeviceManager`), you can use the `ContentDirectoryService` class to browse its content.
+---
 
-**`ContentDirectoryService`**
+## API reference
 
-To create an instance, you need the service description object, which you get from the discovery process (when `detailLevel` is `'services'` or `'full'`).
+All symbols below are exported from the package root (`dlna.js`).
 
-**Main Methods:**
+### Discovery
 
-*   **`browse(objectId, browseFlag, ...)`**: The primary method for browsing content.
-    *   `objectId` (string): The ID of the container (folder) you want to browse. Use `'0'` to start from the root directory.
-    *   `browseFlag` (string): Determines what is returned.
-        *   `'BrowseMetadata'`: Returns only the metadata for the `objectId` itself.
-        *   `'BrowseDirectChildren'`: Returns the direct children of the `objectId` (the content of the folder).
-    *   **Returns:** A `Promise<BrowseResult>` containing an array of `items`, `numberReturned`, and `totalMatches`.
+#### `class ActiveDeviceManager extends EventEmitter`
 
-*   **`search(containerId, searchCriteria, ...)`**: Allows performing an advanced search within a container.
+Continuous SSDP discovery and device cache.
 
-**Example:**
+```ts
+new ActiveDeviceManager(options?: ActiveDeviceManagerOptions)
+```
 
-```typescript
-import { discoverSsdpDevicesIterable, ContentDirectoryService } from 'dlna.js';
-import type { DeviceDescription } from 'dlna.js';
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `searchTarget` | `string` | `'ssdp:all'` | SSDP `ST` value |
+| `detailLevel` | `DiscoveryDetailLevel` | `'full'` in types / often `'basic'` if omitted at runtime — pass explicitly | How deep to fetch/parse |
+| `mSearchIntervalMs` | `number` | `10000` | M-SEARCH repeat interval |
+| `deviceCleanupIntervalMs` | `number` | `60000` | Expired-device cleanup interval |
+| `includeIPv6` | `boolean` | `false` | Also use IPv6 |
+| `onRawSsdpMessage` | `RawSsdpMessageHandler` | — | Raw SSDP callback |
+| `networkInterfaces` | `string[]` | — | Restrict to named interfaces |
 
-// Assuming 'device' is a discovered Media Server device object
-async function browseAndSearchContent(device: DeviceDescription) {
-  const cdsServiceInfo = device.serviceList.get('ContentDirectory');
-  if (!cdsServiceInfo) {
-      console.error('ContentDirectory service not found on this device.');
-      return;
-  }
+**Events**
 
-  const cds = new ContentDirectoryService(cdsServiceInfo);
+| Event | Args | When |
+|-------|------|------|
+| `devicefound` | `(udn: string, device: ApiDevice)` | New device processed |
+| `deviceupdated` | `(udn: string, device: ApiDevice)` | Existing device refreshed |
+| `devicelost` | `(udn: string, device: ApiDevice)` | Device timed out / left |
+| `error` | `(error: Error)` | Critical discovery error |
 
-  try {
-    // Example for browse()
-    console.log('Browsing root directory...');
-    const browseResult = await cds.browse('0', 'BrowseDirectChildren');
-    console.log(`Found ${browseResult.totalMatches} items in root.`);
-    for (const item of browseResult.items) {
-      console.log(`  - ${item.isContainer ? '[Folder]' : '[File]'} ${item.title}`);
-    }
+**Methods**
 
-    // Example for search()
-    // This searches for all items with "Vacation" in their title.
-    console.log('\nSearching for items with "Vacation" in the title...');
-    const searchCriteria = 'dc:title contains "Vacation"';
-    const searchResult = await cds.search('0', searchCriteria); // '0' means search the whole library
-    console.log(`Found ${searchResult.totalMatches} items matching the search.`);
-    for (const item of searchResult.items) {
-      console.log(`  - [Found] ${item.title}`);
-    }
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `start()` | `Promise<void>` | Begin discovery |
+| `stop()` | `Promise<void>` | Stop discovery and close sockets |
+| `getActiveDevices()` | `Map<string, ApiDevice>` | Current devices keyed by UDN |
 
-  } catch (error) {
-    console.error('Error interacting with ContentDirectory service:', error);
-  }
+---
+
+#### `discoverSsdpDevicesIterable(options?: DiscoveryOptions): AsyncIterable<ProcessedDevice>`
+
+One-shot timed discovery as an async iterable (`for await...of`).
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `timeoutMs` | `number` | `5000` | Total discovery window |
+| `searchTarget` | `string` | `'ssdp:all'` | SSDP `ST` |
+| `detailLevel` | `DiscoveryDetailLevel` | `'full'` | Enrichment depth |
+| `includeIPv6` | `boolean` | `false` | IPv6 |
+| `abortSignal` | `AbortSignal` | — | Cancel discovery |
+| `onDeviceFound` | `(device) => void` | — | Per-device callback |
+| `onRawSsdpMessage` | `RawSsdpMessageHandler` | — | Raw SSDP |
+| `networkInterfaces` | `os.NetworkInterfaces` dict | — | Override interface list |
+
+```js
+const { discoverSsdpDevicesIterable, DiscoveryDetailLevel } = require('dlna.js');
+
+for await (const device of discoverSsdpDevicesIterable({
+  timeoutMs: 8000,
+  detailLevel: DiscoveryDetailLevel.Full,
+  searchTarget: 'urn:schemas-upnp-org:device:MediaServer:1',
+})) {
+  console.log(device.friendlyName, device.location);
 }
 ```
 
-### 4. Sending Low-Level Commands
+---
 
-For advanced control or to interact with services not explicitly wrapped by this library, you can use the `sendUpnpCommand` function.
+#### `processUpnpDevice(basicDevice, detailLevel, abortSignal?)`
 
-**`sendUpnpCommand(controlURL, serviceType, actionName, args)`**
+Enrich a `BasicSsdpDevice` to the requested `DiscoveryDetailLevel`. Returns `ProcessedDevice`.
 
-This function builds, sends, and parses a generic SOAP request.
+#### `processUpnpDeviceFromUrl(locationUrl, detailLevel, abortSignal?)`
 
-**Parameters:**
+Same enrichment starting from a device description URL (e.g. `http://192.168.1.105:1997/`).
 
-*   `controlURL` (string): The control URL of the service.
-*   `serviceType` (string): The URN of the service (e.g., `"urn:schemas-upnp-org:service:AVTransport:1"`).
-*   `actionName` (string): The exact name of the action to perform (e.g., `"Play"`, `"Pause"`).
-*   `args` (object, optional): An object containing the arguments for the action.
+---
 
-**Returns:** A `Promise<Record<string, any>>` that resolves with the output values of the action.
+### Enums & constants
 
-**Example (Sending a `Play` command):**
+#### `enum DiscoveryDetailLevel`
 
-```typescript
-import { sendUpnpCommand } from 'dlna.js';
-import type { DeviceDescription } from 'dlna.js';
+| Value | Meaning |
+|-------|---------|
+| `Basic` (`'basic'`) | SSDP fields only |
+| `Description` (`'description'`) | + device description XML |
+| `Services` (`'services'`) | + SCPD parse (no `invoke`) |
+| `Full` (`'full'`) | + `action.invoke` / state helpers |
 
-// Assuming 'rendererDevice' is a discovered Media Renderer
-// and 'mediaUrl' is the URL of the media to play
-async function playMedia(rendererDevice: DeviceDescription, mediaUrl: string) {
-  const avtService = rendererDevice.serviceList.get('AVTransport');
-  if (!avtService) {
-    console.error('AVTransport service not found.');
-    return;
-  }
+#### `enum BrowseFlag`
 
-  const { controlURL, serviceType } = avtService;
+| Value | Meaning |
+|-------|---------|
+| `BrowseMetadata` | Metadata for the given object id |
+| `BrowseDirectChildren` | Children of a container |
 
-  try {
-    // Step 1: Set the media URL
-    await sendUpnpCommand(controlURL, serviceType, 'SetAVTransportURI', {
-      InstanceID: 0,
-      CurrentURI: mediaUrl,
-      CurrentURIMetaData: '' // DIDL-Lite XML can go here
-    });
-    console.log('Media URL set successfully.');
+#### URN helpers & constants
 
-    // Step 2: Send the Play command
-    await sendUpnpCommand(controlURL, serviceType, 'Play', {
-      InstanceID: 0,
-      Speed: '1'
-    });
-    console.log('Play command sent!');
+```ts
+UPNP_ORG_SERVICE_SCHEMA  // 'urn:schemas-upnp-org:service'
+UPNP_ORG_DEVICE_SCHEMA   // 'urn:schemas-upnp-org:device'
 
-  } catch (error) {
-    console.error('Error sending command:', error.message);
-    if (error.soapFault) {
-      console.error('  -> SOAP Fault details:', error.soapFault);
-    }
-  }
+buildUpnpServiceTypeIdentifier(serviceType: string, version?: number): string
+buildUpnpDeviceTypeIdentifier(deviceType: string, version?: number): string
+
+AVTRANSPORT_SERVICE          // ...:AVTransport:1
+CONTENT_DIRECTORY_SERVICE    // ...:ContentDirectory:1
+CONNECTION_MANAGER_SERVICE   // ...:ConnectionManager:1
+RENDERING_CONTROL_SERVICE    // ...:RenderingControl:1
+MEDIA_SERVER_DEVICE          // ...:MediaServer:1
+MEDIA_RENDERER_DEVICE        // ...:MediaRenderer:1
+```
+
+---
+
+### Device services & actions
+
+After `Full` discovery, each entry in `device.serviceList` is a `ServiceDescription` with:
+
+- `serviceType`, `serviceId`, `controlURL`, `SCPDURL`, …
+- `actionList: Map<string, Action>` — keys are action names (`'Play'`, `'Browse'`, …)
+- On `Full`, actions typically expose **`invoke(args) => Promise<...>`**
+
+```js
+const cds = device.serviceList.get('ContentDirectory');
+const browse = cds.actionList.get('Browse');
+const result = await browse.invoke({
+  ObjectID: '0',
+  BrowseFlag: 'BrowseDirectChildren',
+  Filter: '*',
+  StartingIndex: 0,
+  RequestedCount: 10,
+  SortCriteria: '',
+});
+```
+
+Common renderer actions: `SetAVTransportURI`, `Play`, `Pause`, `Stop`, `GetTransportInfo`, `GetPositionInfo`, `GetVolume`, `SetVolume`.
+
+---
+
+### `class ContentDirectoryService`
+
+Convenience wrapper around a ContentDirectory `ServiceDescription`.
+
+```ts
+new ContentDirectoryService(serviceInfo: ServiceDescription)
+```
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `browse` | `(objectId, browseFlag, filter?, startingIndex?, requestedCount?, sortCriteria?) => Promise<BrowseResult>` | CDS Browse |
+| `search` | `(containerId, searchCriteria, filter?, startingIndex?, requestedCount?, sortCriteria?) => Promise<BrowseResult>` | CDS Search |
+
+`browseFlag` should be a `BrowseFlag` enum value. `BrowseResult` includes `items`, `numberReturned`, `totalMatches`, optional `updateID`.
+
+```js
+const { ContentDirectoryService, BrowseFlag } = require('dlna.js');
+
+const cds = new ContentDirectoryService(device.serviceList.get('ContentDirectory'));
+const root = await cds.browse('0', BrowseFlag.BrowseDirectChildren);
+for (const item of root.items) {
+  console.log(item.title, item.id, item.class);
 }
 ```
 
-## 5. Advanced Usage / Utilities
+---
 
-### `createSingleItemDidlLiteXml(item, resource)`
+### SOAP & DIDL utilities
 
-This utility function creates a DIDL-Lite XML string for a single media item. This is primarily useful when you need to provide metadata to a Media Renderer using the `SetAVTransportURI` action. The `CurrentURIMetaData` parameter of that action accepts this XML format.
+#### `sendUpnpCommand(controlURL, serviceType, actionName, args?)`
 
-```typescript
-import { createSingleItemDidlLiteXml } from 'dlna.js';
+Low-level SOAP call. Returns a plain object of output arguments.
 
-const item = {
-  id: 'my-video-1',
-  parentId: '0',
-  title: 'My Awesome Vacation Video',
-  class: 'object.item.videoItem',
-  restricted: false,
-};
+```js
+const { sendUpnpCommand, AVTRANSPORT_SERVICE } = require('dlna.js');
 
-const resource = {
-  uri: 'http://192.168.1.100:8080/stream/my-video.mp4',
-  protocolInfo: 'http-get:*:video/mp4:*',
-  duration: '00:15:30.000', // HH:MM:SS.mmm
-  size: 123456789, // in bytes
-};
-
-const didlXml = createSingleItemDidlLiteXml(item, resource);
-// Now you can pass didlXml to the SetAVTransportURI command.
+await sendUpnpCommand(
+  'http://192.168.1.105:1997/AVTransport/.../control.xml',
+  AVTRANSPORT_SERVICE,
+  'Play',
+  { InstanceID: 0, Speed: '1' }
+);
 ```
 
-### `processUpnpDevice(basicDevice, detailLevel, abortSignal?)` and `processUpnpDeviceFromUrl(locationUrl, detailLevel, abortSignal?)`
+#### `createSingleItemDidlLiteXml(item, resource)`
 
-These are lower-level functions used internally by the discovery process to fetch and parse the full details of a device. You would typically not need to call them directly.
+Builds DIDL-Lite XML for `CurrentURIMetaData` / similar.
 
-*   **`processUpnpDevice`**: Takes a `BasicSsdpDevice` object (from an initial discovery) and enriches it with full details according to the specified `detailLevel` (`DiscoveryDetailLevel` enum).
-*   **`processUpnpDeviceFromUrl`**: Does the same, but starts from just the device's XML location URL.
+- `item`: `DidlLiteObject`-like (`id`, `parentId`, `title`, `class`, `restricted`, …)
+- `resource`: `Resource`-like (`uri`, `protocolInfo`, optional `size`, `duration`)
 
-**When to use them?**
-If you have a device's basic information or URL from another source and want to get its full capabilities using this library's processing logic.
+---
 
-**Example:**
-```typescript
-import { processUpnpDeviceFromUrl, DiscoveryDetailLevel } from 'dlna.js';
+### Logging
 
-async function getDeviceDetails(url: string) {
-  console.log(`Fetching full details for device at: ${url}`);
-  try {
-    const device = await processUpnpDeviceFromUrl(url, DiscoveryDetailLevel.Full);
-    if (device) {
-      console.log(`Successfully processed: ${device.friendlyName}`);
-      // You can now access all device properties, services, and actions
-      const avTransport = device.serviceList?.get('AVTransport');
-      if (avTransport) {
-        console.log('AVTransport service is available.');
-      }
-    } else {
-      console.log('Could not process device details.');
-    }
-  } catch (error) {
-    console.error('Error processing device from URL:', error);
-  }
+| Export | Description |
+|--------|-------------|
+| `setLogger(logger \| null)` | Use one logger for all modules (`null` → noop) |
+| `setLoggerFactory(factory \| null)` | Per-module logger factory `(moduleName) => DlnaLogger` |
+| `createModuleLogger(moduleName)` / `createLogger` | Logger bound to current factory (noop by default) |
+
+```ts
+interface DlnaLogger {
+  error(message: string, ...meta: unknown[]): void;
+  warn(message: string, ...meta: unknown[]): void;
+  info(message: string, ...meta: unknown[]): void;
+  debug(message: string, ...meta: unknown[]): void;
 }
-
-// Replace with a real device description URL from your network
-const deviceXmlUrl = 'http://192.168.1.1:12345/device.xml';
-getDeviceDetails(deviceXmlUrl);
+type LoggerFactory = (moduleName: string) => DlnaLogger;
 ```
+
+---
+
+### `retry(fn, options?)`
+
+Retry an async function.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `retries` | `3` | Attempts |
+| `delayMs` | `1000` | Delay between attempts |
+| `logger` | module logger | Optional |
+| `onRetry` | — | `(error, attempt) => void` |
+
+---
+
+## Key types (TypeScript)
+
+Exported from the package (see `dist/index.d.ts` for full fields):
+
+| Type | Role |
+|------|------|
+| `ApiDevice` / `ServerApiDevice` | Device as tracked by `ActiveDeviceManager` |
+| `BasicSsdpDevice` | SSDP-only device |
+| `DeviceDescription` | + description XML fields (`friendlyName`, `deviceType`, …) |
+| `DeviceWithServicesDescription` | + `serviceList` |
+| `FullDeviceDescription` | + invokable actions |
+| `ProcessedDevice` | Union of the above by detail level |
+| `ServiceDescription` | One UPnP service |
+| `Action` / `ActionArgument` / `StateVariable` | SCPD model |
+| `ActiveDeviceManagerOptions` | Manager options |
+| `DiscoveryOptions` | Iterable discovery options |
+| `BrowseResult` / `DidlLiteObject` / `DidlLiteContainer` / `Resource` | CDS / DIDL |
+| `RawSsdpMessagePayload` / `RawSsdpMessageHandler` | Raw SSDP hook |
+
+---
+
+## Export checklist
+
+Runtime / type exports from `dlna.js`:
+
+- **Discovery:** `ActiveDeviceManager`, `discoverSsdpDevicesIterable`, `processUpnpDevice`, `processUpnpDeviceFromUrl`
+- **CDS helper:** `ContentDirectoryService`, `BrowseFlag`
+- **SOAP / DIDL:** `sendUpnpCommand`, `createSingleItemDidlLiteXml`
+- **Logging:** `setLogger`, `setLoggerFactory`, `createLogger`, `createModuleLogger`, `DlnaLogger`, `LoggerFactory`
+- **Utils:** `retry`
+- **Enums / URNs:** `DiscoveryDetailLevel`, `AVTRANSPORT_SERVICE`, `CONTENT_DIRECTORY_SERVICE`, `CONNECTION_MANAGER_SERVICE`, `RENDERING_CONTROL_SERVICE`, `MEDIA_SERVER_DEVICE`, `MEDIA_RENDERER_DEVICE`, `UPNP_ORG_SERVICE_SCHEMA`, `UPNP_ORG_DEVICE_SCHEMA`, `buildUpnpServiceTypeIdentifier`, `buildUpnpDeviceTypeIdentifier`
+- **Types:** `ApiDevice`, `ServerApiDevice`, and other types re-exported from `./types`
+
+---
 
 ## Bugs
 
-I don't know if I'll be able to handle bugs, if any are found.
-But we can try...
+Please open issues at [github.com/tzlev-2/DLNA.js/issues](https://github.com/tzlev-2/DLNA.js/issues).
 
-## Acknowledgment Request
+## Acknowledgment
 
-If you use DLNA.js in your project, a credit with a link to the [GitHub repository](https://github.com/MusiCode1/DLNA.js) in your project's "About" page or documentation would be greatly appreciated.
+If you use DLNA.js, a credit with a link to the [GitHub repository](https://github.com/tzlev-2/DLNA.js) is appreciated.
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+MIT. See `LICENSE`.

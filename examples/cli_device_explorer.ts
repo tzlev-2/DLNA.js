@@ -11,13 +11,16 @@ import {
   type StateVariable,
   type ActionArgument, // שונה מ-Argument
   // UpnpSoapClient לא מיוצא, נשתמש ב-sendUpnpCommand
-  createLogger,
-  setLogger,
   sendUpnpCommand, // הפונקציה המיוצאת לשליחת פקודות
 } from 'dlna.js'; // ייבוא יחסי לחבילת הליבה
-setLogger(console);
 
-const logger = createLogger('CLIDeviceExplorer');
+// Keep library quiet so Inquirer menus stay usable on a TTY.
+const logger = {
+  info: (m: string, ...a: unknown[]) => console.log(m, ...a),
+  warn: (m: string, ...a: unknown[]) => console.warn(m, ...a),
+  error: (m: string, ...a: unknown[]) => console.error(m, ...a),
+  debug: (_m: string, ..._a: unknown[]) => {},
+};
 
 /**
  * מחלץ שם סוג התקן קריא מתוך ה-URN המלא.
@@ -178,11 +181,26 @@ async function deviceActionsMenu(device: FullDeviceDescription): Promise<'redisc
   let keepMenuOpen = true;
 
   while (keepMenuOpen) {
+    const serviceCount = device.serviceList?.size ?? 0;
+    if (serviceCount > 0) {
+      const names = Array.from(device.serviceList!.values())
+        .map((s) => (s.serviceType || s.serviceId || '').split(':').slice(-2, -1)[0] || s.serviceId)
+        .join(', ');
+      logger.info(`Services on device (${serviceCount}): ${names}`);
+    } else {
+      logger.warn(`Device ${device.friendlyName} has no services in discovery result.`);
+    }
     logger.debug('Prompting for device action in deviceActionsMenu loop...');
     const action = await select({
         message: `Device: ${device.friendlyName} (${getFriendlyDeviceType(device.deviceType)}) - What do you want to do?`,
         choices: [
-          { name: 'List services & explore service', value: 'listServices' },
+          {
+            name: serviceCount
+              ? `List services & explore service (${serviceCount})`
+              : 'List services & explore service (none found)',
+            value: 'listServices',
+            disabled: serviceCount === 0 ? '(no services)' : false,
+          },
           new Separator(),
           { name: 'Back to device list (Restart discovery)', value: 'rediscover' },
           { name: 'Exit', value: 'exit' },
