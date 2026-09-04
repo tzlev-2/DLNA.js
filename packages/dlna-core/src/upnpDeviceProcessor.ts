@@ -442,6 +442,9 @@ async function fetchScpdAndUpdateService(service: ServiceDescription, signal?: A
 
     if (!result || (!result.actionList && !result.serviceStateTable)) {
       logger.warn(`fetchScpdAndUpdateService: Invalid or incomplete SCPD XML from ${service.SCPDURL}. Missing 'actionList' or 'serviceStateTable'.`, { parsedResult: result });
+      service.scpdError = 'Failed to fetch/parse SCPD: Invalid or incomplete SCPD XML';
+      service.actionList = new Map<string, Action>();
+      service.stateVariableList = new Map<string, StateVariable>();
       return;
     }
 
@@ -531,6 +534,9 @@ async function fetchScpdAndUpdateService(service: ServiceDescription, signal?: A
     } else {
       logger.error(xmlData as string)
       logger.error(`fetchScpdAndUpdateService: Error fetching or parsing SCPD for service ${service.serviceId} from ${service.SCPDURL}:`, { message: error.message, stack: error.stack, url: service.SCPDURL });
+      service.scpdError = `Failed to fetch/parse SCPD: ${error.message}`;
+      service.actionList = new Map<string, Action>();
+      service.stateVariableList = new Map<string, StateVariable>();
     }
     // לא זורקים שגיאה כדי לא לעצור את כל התהליך
   }

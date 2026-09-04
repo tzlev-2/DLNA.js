@@ -40,6 +40,8 @@
     "xmlbuilder2": "^3.1.1"
   },
   "devDependencies": {
-    "@types/xml2js": "^0.4.14"
+    "@types/node": "^22",
+    "@types/xml2js": "^0.4.14",
+    "typescript": "^5.8.3"
   }
 }

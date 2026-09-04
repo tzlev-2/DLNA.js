@@ -202,4 +202,4 @@ Refactor +1 · TDD לא נדרש. **Score: 2/10.** Tier: `calev` light. phase א
 
 ## סטיות מהתכנון (אליעזר)
 
-- …
+- **scpdError ב-`fetchScpdAndUpdateService`**: שני טests ב-`upnpDeviceProcessor.test.ts` נחשפו אחרי C1 (לא רצו בגלל node-cache). הוספת `service.scpdError` + Maps ריקים בנתיבי כשל SCPD — לא בבריף, נדרש לשער #4 (0 fail).
