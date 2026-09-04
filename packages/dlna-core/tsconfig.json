@@ -4,7 +4,8 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "composite": true, // חשוב עבור project references
-    "sourceMap": true,
+    "sourceMap": false,
+    "declarationMap": false,
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
