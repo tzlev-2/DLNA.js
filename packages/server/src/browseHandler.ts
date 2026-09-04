@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { createModuleLogger } from './logger';
 import {
-  createModuleLogger,
   ContentDirectoryService, BrowseFlag,
   BrowseResult, ServiceDescription
 } from 'dlna.js';

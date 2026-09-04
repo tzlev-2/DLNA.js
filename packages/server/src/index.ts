@@ -1,8 +1,7 @@
 // Import necessary for side effects (e.g., dotenv.config()) and for explicit calls.
 import './config'; // מייבא ומריץ את config.ts, כולל dotenv.config()
-
-import { createModuleLogger } from 'dlna.js';
-
+import './bootstrapLogging'; // חייב לפני './app'
+import { createModuleLogger } from './logger';
 import { startServer } from './app';
 import { stopDiscovery as stopDeviceDiscovery } from './deviceManager';
 // שים לב: startDeviceDiscovery נקרא כעת מתוך startServer ב-app.ts

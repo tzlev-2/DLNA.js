@@ -1,5 +1,5 @@
 // packages/server/src/deviceActionService.ts
-import { createModuleLogger } from 'dlna.js';
+import { createModuleLogger } from './logger';
 import type { ApiDevice } from './types';
 
 const logger = createModuleLogger('deviceActionService');

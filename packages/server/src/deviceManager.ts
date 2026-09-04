@@ -1,4 +1,6 @@
-import { createModuleLogger, ActiveDeviceManager, type ActiveDeviceManagerOptions, type ServerApiDevice, type RawSsdpMessagePayload } from 'dlna.js';
+import { createModuleLogger } from './logger';
+import {
+  ActiveDeviceManager, type ActiveDeviceManagerOptions, type ServerApiDevice, type RawSsdpMessagePayload } from 'dlna.js';
 import type { RemoteInfo } from 'node:dgram';
 // import type { ApiDevice } from './types'; // ApiDevice יגיע מ-dlna-core
 import { config } from './config';

@@ -3,10 +3,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as url from "url";
 import type { Request, Response, NextFunction } from 'express'; // הוספת ייבואים נדרשים
-import {
-  createModuleLogger,
-
-} from 'dlna.js'; // הוספת ייבוא ללוגר
+import { createModuleLogger } from './logger';
 
 import type {
   DeviceDescription, // הוספת ייבוא

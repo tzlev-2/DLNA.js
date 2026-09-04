@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
 import * as url from "url";
-import { createModuleLogger } from 'dlna.js';
+import { createModuleLogger } from './logger';
 import { config } from './config';
 import apiRouter from './routes'; // ייבוא ה-router הראשי
 import { startDiscovery as startDeviceDiscovery } from './deviceManager'; // שינוי שם הייבוא למניעת התנגשות פוטנציאלית

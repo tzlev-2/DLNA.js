@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { createModuleLogger } from './logger';
 import {
   ProcessedDevice,
   DiscoveryDetailLevel,
@@ -6,7 +7,6 @@ import {
   FullDeviceDescription,
   DeviceWithServicesDescription,
   // discoverSsdpDevices, // הוסב להערה כדי למנוע שגיאת build
-  createModuleLogger
 } from 'dlna.js';
 import type { RawSsdpMessageHandler, DiscoveryOptions } from 'dlna.js'; // Assuming logger is needed
 

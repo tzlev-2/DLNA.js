@@ -1,7 +1,7 @@
 import { test, expect, beforeAll, afterAll, describe } from 'bun:test';
 import type { Subprocess } from 'bun';
 import path from 'path';
-import { createModuleLogger } from '../../dlna-core/src/logger'; // נתיב מתוקן ללוגר
+import { createModuleLogger } from './logger';
 
 const logger = createModuleLogger('ServerIntegrationTest(bun:test)');
 const SERVER_API_URL = 'http://localhost:3300/api/devices';

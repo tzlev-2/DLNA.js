@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { Readable } from 'stream';
-import { createLogger } from 'dlna.js';
+import { createLogger } from './logger';
 import { getActiveDevices } from './deviceManager';
 
 const logger = createLogger('ProxyHandler');
